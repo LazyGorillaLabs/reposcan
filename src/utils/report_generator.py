@@ -1,20 +1,8 @@
 # project_root/src/utils/report_generator.py
-"""
-Generates a simple report from the scan results.
-"""
+from src.utils.logger import logger
 
 def generate_report(scan_results: dict) -> str:
-    """
-    Given the aggregated scan results, generate a simple markdown report.
-    scan_results format:
-      {
-        "path/to/file.py": {
-          "pattern_name": [list_of_matches],
-          ...
-        },
-        ...
-      }
-    """
+    logger.debug("Generating report from scan results.")
     report_lines = []
     report_lines.append("# Scan Report\n")
     suspicious_count = 0
@@ -24,12 +12,14 @@ def generate_report(scan_results: dict) -> str:
             report_lines.append(f"## {file_path}")
             for pattern_name, matches in patterns_found.items():
                 report_lines.append(f"- **{pattern_name}**: Found {len(matches)} occurrences.")
-            report_lines.append("")  # blank line
+            report_lines.append("")
 
     if suspicious_count == 0:
         report_lines.insert(1, "No suspicious patterns found.\n")
+        logger.info("No suspicious patterns detected.")
     else:
-        report_lines.insert(1, f"**Summary:** {suspicious_count} files with suspicious patterns.\n")
+        summary = f"**Summary:** {suspicious_count} files with suspicious patterns.\n"
+        report_lines.insert(1, summary)
+        logger.info(f"Suspicious patterns found in {suspicious_count} files.")
 
     return "\n".join(report_lines)
-

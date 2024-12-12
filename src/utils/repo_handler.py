@@ -6,44 +6,41 @@ Utilities for handling repository input:
 - Gathering files for scanning
 """
 
+# project_root/src/utils/repo_handler.py
 import os
 import sys
 import tempfile
 import shutil
 import subprocess
-from pathlib import Path
 from src.utils.config import FILE_EXTENSIONS_TO_SCAN
+from src.utils.logger import logger
 
 def clone_repo_if_needed(repo_url: str) -> str:
-    """
-    If repo_url is a Git URL (e.g., starts with http), clone it into a temp directory.
-    Otherwise, assume it's a local path and return as is.
-    """
     if repo_url.startswith("http"):
         tmp_dir = tempfile.mkdtemp(prefix="repo_scan_")
+        logger.info(f"Cloning repository from {repo_url} into {tmp_dir}")
         try:
             subprocess.run(["git", "clone", "--depth", "1", repo_url, tmp_dir], check=True)
+            logger.debug("Clone completed successfully.")
             return tmp_dir
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
             shutil.rmtree(tmp_dir)
-            print("Error: Failed to clone repository.")
+            logger.error(f"Error: Failed to clone repository. {e}")
             sys.exit(1)
     else:
-        # Assume local directory
+        logger.debug(f"Using local path: {repo_url}")
         if not os.path.isdir(repo_url):
-            print(f"Error: The path '{repo_url}' is not a directory.")
+            logger.error(f"Error: The path '{repo_url}' is not a directory.")
             sys.exit(1)
         return repo_url
 
-
 def gather_files(repo_path: str) -> list:
-    """
-    Recursively gather files from the repository path that match certain extensions.
-    """
+    logger.debug(f"Gathering files from {repo_path}")
     all_files = []
     for root, dirs, files in os.walk(repo_path):
         for f in files:
             if any(f.endswith(ext) for ext in FILE_EXTENSIONS_TO_SCAN):
                 all_files.append(os.path.join(root, f))
+    logger.debug(f"Total files matched patterns: {len(all_files)}")
     return all_files
 
