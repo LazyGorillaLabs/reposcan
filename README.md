@@ -5,7 +5,7 @@
 RepoScan is a tool designed to help end-users assess and report on the presence of suspicious or malicious code within open-source repositories before they run it locally. While open source code can be inspected by anyone, in practice it’s rarely done thoroughly due to complexity, time constraints, and lack of expertise. RepoScan aims to bridge this gap by automating basic security checks and eventually offering more advanced capabilities such as AST-based analysis, vulnerability checking, and optional AI-driven summaries.
 
 **What problem does RepoScan solve?**  
-In today’s open-source ecosystem, users frequently download and run code from GitHub, PyPI, npm, or other sources without fully understanding what the code might be doing behind the scenes. Malicious actors can slip in backdoors, data exfiltration, or other unethical behaviors quite easily. RepoScan provides a basic first line of defense by scanning code repositories and highlighting suspicious patterns. It doesn’t guarantee absolute safety, but it helps users make more informed decisions.
+In today’s open-source ecosystem, users frequently download and run code from GitHub, PyPI, npm, or other sources without fully understanding what the code might be doing behind the scenes. Malicious actors can slip in backdoors, data exfiltration, or other unethical behaviors quite easily. RepoScan provides a basic first line of defense by scanning code repositories and highlighting suspicious patterns. It does not and can not guarantee absolute safety, but merely aims to help users make more informed decisions.
 
 ## Current Status
 
@@ -101,6 +101,7 @@ Safely execute the code in a controlled environment to observe runtime behavior.
 - Multi-Language Support:
 Expand beyond Python/JS to cover languages like Go, Rust, or C/C++.
 - Expand repositiories to include pypi/pip/npm etc
+- Telemetry module to determine what infomation is being gathered and shared with whom
 - Community-Driven Rule Sets:
 Allow users to contribute their own suspicious pattern rules and share them, making RepoScan a community-driven project.
 
