@@ -57,47 +57,55 @@ cd project_root
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt  # If a requirements file is present, else skip
-Running the Tool:
+```
+**Running the Tool:**
 
 To scan a remote GitHub repo:
 
-bash
+```bash
 cd project_root
 python -m src.main https://github.com/someuser/somerepo
+```
 To scan a local directory:
 
-bash
+```bash
 cd project_root
 python -m src.main /path/to/local/repo
+```
 The tool will print out a Markdown-formatted report to stdout.
 
-Roadmap & Planned Features
-Short-Term:
+## Roadmap & Planned Features
 
-Improve Pattern Scanning:
-Add more language-specific patterns and refine regex matches to reduce false positives.
-Logging Improvements:
-Fine-tune log levels and add more contextual logging to aid debugging.
-Dependency Checker:
+**Short-Term:**
+
+- Improve Pattern Scanning:
+- Add more language-specific patterns and refine regex matches to reduce false positives.
+- Logging Improvements:
+- Fine-tune log levels and add more contextual logging to aid debugging.
+- Dependency Checker:
 Integrate a tool to identify if the repo depends on known-vulnerable or malicious packages (e.g., via CVE databases).
-Medium-Term:
 
-AST-Based Analysis:
-Implement AST scanners for Python and JavaScript to detect more subtle malicious behaviors (like dynamic code execution or suspicious control flows).
-LLM Integration (Optional):
+**Medium-Term:**
+
+- AST-Based Analysis:
+Implement or integrate existing AST scanners for Python and JavaScript to detect more subtle malicious behaviors (like dynamic code execution or suspicious control flows).
+- LLM Integration (Optional):
 Use a Large Language Model for deeper insights:
-File-by-File Analysis: Ask the LLM to summarize suspicious logic found by the pattern-based and AST scanners.
-Final Report Summaries: Provide a natural language summary of the entire repository’s risk profile for non-technical users.
-Long-Term:
+  - File-by-File Analysis: Ask the LLM to summarize suspicious logic found by the pattern-based and AST scanners, or all files if desired. 
+  - Final Report Summaries: Provide a natural language summary of the entire repository’s risk profile for non-technical users.
 
-Sandboxed Dynamic Analysis:
+**Long-Term:**
+
+- Sandboxed Dynamic Analysis:
 Safely execute the code in a controlled environment to observe runtime behavior.
-Multi-Language Support:
+- Multi-Language Support:
 Expand beyond Python/JS to cover languages like Go, Rust, or C/C++.
-Community-Driven Rule Sets:
+- Expand repositiories to include pypi/pip/npm etc
+- Community-Driven Rule Sets:
 Allow users to contribute their own suspicious pattern rules and share them, making RepoScan a community-driven project.
-Contributing
+
+## Contributing
 The project is still in its early stages. Community feedback, code contributions, and suggestions for patterns and scanning techniques are welcome. By contributing, you help make open-source software safer and more transparent for everyone.
 
-License
+## License
 MIT
