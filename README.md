@@ -104,6 +104,8 @@ Expand beyond Python/JS to cover languages like Go, Rust, or C/C++.
 - code obfuscation detection
 - Community-Driven Rule Sets:
 Allow users to contribute their own suspicious pattern rules and share them, making RepoScan a community-driven project.
+- better detection for unwanted behaviors such as crypto miners
+- Better JS AST parsing and/or custom ESLint rules
 - (Maybe some day) Sandboxed Dynamic Analysis:
 Safely execute the code in a controlled environment to observe runtime behavior.
 
