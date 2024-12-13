@@ -96,14 +96,16 @@ Use a Large Language Model for deeper insights:
 
 **Long-Term:**
 
-- Sandboxed Dynamic Analysis:
-Safely execute the code in a controlled environment to observe runtime behavior.
 - Multi-Language Support:
 Expand beyond Python/JS to cover languages like Go, Rust, or C/C++.
 - Expand repositiories to include pypi/pip/npm etc
-- Telemetry module to determine what infomation is being gathered and shared with whom
+- Advanced Telemetry module to determine what infomation is being gathered and shared with whom
+- better detection for vitualization/sandbox/debugger detection
+- code obfuscation detection
 - Community-Driven Rule Sets:
 Allow users to contribute their own suspicious pattern rules and share them, making RepoScan a community-driven project.
+- (Maybe some day) Sandboxed Dynamic Analysis:
+Safely execute the code in a controlled environment to observe runtime behavior.
 
 ## Contributing
 The project is still in its early stages. Community feedback, code contributions, and suggestions for patterns and scanning techniques are welcome. By contributing, you help make open-source software safer and more transparent for everyone.
