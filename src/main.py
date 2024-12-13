@@ -2,31 +2,34 @@
 """
 Main entry point of the application.
 
-This file orchestrates:
-- Taking user input for a repo (URL or local path)
-- Cloning/validating repo via repo_handler
-- Gathering files
-- Running pattern scans
-- Generating and displaying a report
+Now the code uses fetch_code_source() to handle various input types:
+- GitHub (github:user/repo or https://github.com/user/repo) - working
+- PyPI (pypi:packagename) - not yet implemented, will error
+- NPM (npm:packagename) - not yet implemented, will error
+- Remote file (http://host/file.js) - not yet implemented, will error
+- Local directory or file - working
 
-Later steps will integrate other scanners, LLM analysis, etc.
+Then it scans the resulting directory/file.
+
+Usage:
+  python -m src.main <input> [--use-ast] [--use-eslint]
 """
 
 import sys
+import os
 import shutil
 import argparse
 
-from src.utils.repo_handler import clone_repo_if_needed, gather_files
+from src.utils.repo_handler import fetch_code_source, gather_files
 from src.scanners.pattern_scanner import scan_file_for_patterns
 from src.scanners.ast_scanner import scan_python_file_with_ast
 from src.scanners.eslint_scanner import scan_js_file_with_eslint
 from src.utils.report_generator import generate_report
 from src.utils.logger import logger
 
-
 def main():
-    parser = argparse.ArgumentParser(description="Scan a repository for suspicious code.")
-    parser.add_argument("repo_path", help="URL or local path to the repository")
+    parser = argparse.ArgumentParser(description="Scan a code source for suspicious code.")
+    parser.add_argument("repo_path", help="GitHub, PyPI, NPM, remote file, local dir/file")
     parser.add_argument("--use-ast", action="store_true", help="Enable Python AST scanning")
     parser.add_argument("--use-eslint", action="store_true", help="Enable ESLint scanning for JS/TS files")
     args = parser.parse_args()
@@ -35,12 +38,18 @@ def main():
     use_ast = args.use_ast
     use_eslint = args.use_eslint
 
-    logger.info(f"Starting scan for repository: {repo_input}, AST scanning = {use_ast}, ESLint = {use_eslint}")
-    repo_path = clone_repo_if_needed(repo_input)
-    logger.info(f"Repository prepared at: {repo_path}")
+    logger.info(f"Starting scan for: {repo_input}. AST={use_ast}, ESLint={use_eslint}")
+    final_path = fetch_code_source(repo_input)
+    logger.info(f"Code fetched at: {final_path}")
+
+    # If final_path is a cloned GitHub repo or something fetched,
+    # and we want to remove it afterward, we can keep track of that.
+    # For now, let's assume we always clean up if we created a temp directory.
+    # We'll only cleanup if we detect a temporary directory created by fetch functions:
+    cleanup_needed = final_path.startswith("/tmp/repo_scan_") or "repo_scan_" in final_path
 
     try:
-        files_to_scan = gather_files(repo_path)
+        files_to_scan = gather_files(final_path)
         logger.info(f"Found {len(files_to_scan)} files to scan.")
 
         scan_results = {}
@@ -59,7 +68,6 @@ def main():
             if use_eslint and any(fpath.endswith(ext) for ext in [".js", ".jsx", ".ts", ".tsx"]):
                 eslint_result = scan_js_file_with_eslint(fpath)
                 for k, v in eslint_result.items():
-                    # Merge results just like with AST
                     result.setdefault(k, []).extend(v)
 
             if result:
@@ -68,12 +76,15 @@ def main():
         report = generate_report(scan_results)
         print(report)
     finally:
-        if repo_input.startswith("http"):
-            logger.debug("Removing cloned temporary repository.")
-            shutil.rmtree(repo_path, ignore_errors=True)
+        # Clean up if we fetched code into a temp directory.
+        # This logic might need more robust detection in real usage.
+        # For now, just check if final_path is a temporary directory.
+        if cleanup_needed and not os.path.isfile(final_path):
+            logger.debug(f"Removing temporary directory: {final_path}")
+            shutil.rmtree(final_path, ignore_errors=True)
 
     logger.info("Scan complete.")
 
+
 if __name__ == "__main__":
     main()
-
