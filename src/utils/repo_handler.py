@@ -42,6 +42,9 @@ import re
 import tempfile
 import shutil
 import subprocess
+import tarfile
+import zipfile
+from pathlib import Path
 from src.utils.config import FILE_EXTENSIONS_TO_SCAN
 from src.utils.logger import logger
 
@@ -132,25 +135,67 @@ def fetch_github_repo(repo_input: str) -> str:
 
 def fetch_pypi_package(package_name: str) -> str:
     """
-    Fetch a PyPI package:
+    Fetch a PyPI package and extract its contents.
     Form: pypi:packagename
-
-    For now, this is a placeholder:
-    Steps might be:
-    1. Use `pip download packagename -d <tmp_dir>`
-    2. Extract the downloaded sdist or wheel.
-    3. Return the extracted directory.
-
-    We just log and exit for now.
+    
+    Steps:
+    1. Create temp directory
+    2. Download package using pip
+    3. Find and extract the downloaded archive
+    4. Return path to extracted contents
+    
+    Returns:
+        str: Path to directory containing extracted package
     """
     logger.info(f"Fetching PyPI package: {package_name}")
+    
+    # Create temp directory for download
     tmp_dir = tempfile.mkdtemp(prefix="repo_scan_pypi_")
-    # Pseudocode (not actually implemented):
-    # subprocess.run(["pip", "download", package_name, "-d", tmp_dir], check=True)
-    # Extract the downloaded file (tar.gz or zip) into tmp_dir/extracted/
-    # Return tmp_dir/extracted
-    # For now, just return empty dir to avoid errors.
-    return tmp_dir
+    extract_dir = os.path.join(tmp_dir, "extracted")
+    os.makedirs(extract_dir)
+    
+    try:
+        # Download the package
+        logger.debug(f"Downloading package {package_name}")
+        subprocess.run(
+            ["pip", "download", "--no-deps", package_name, "-d", tmp_dir],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        
+        # Find the downloaded archive
+        archives = [f for f in os.listdir(tmp_dir) 
+                   if f.endswith(('.tar.gz', '.zip', '.whl'))]
+        
+        if not archives:
+            raise FileNotFoundError(f"No package archive found for {package_name}")
+            
+        archive_path = os.path.join(tmp_dir, archives[0])
+        
+        # Extract based on archive type
+        if archive_path.endswith('.tar.gz'):
+            with tarfile.open(archive_path, 'r:gz') as tar:
+                tar.extractall(extract_dir)
+        elif archive_path.endswith(('.zip', '.whl')):  # wheels are zip files
+            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+                
+        # Find the actual package directory (usually first subdirectory)
+        subdirs = [d for d in os.listdir(extract_dir) 
+                  if os.path.isdir(os.path.join(extract_dir, d))]
+        if subdirs:
+            return os.path.join(extract_dir, subdirs[0])
+        return extract_dir
+        
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to download package {package_name}: {e.stderr}")
+        shutil.rmtree(tmp_dir)
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error processing package {package_name}: {str(e)}")
+        shutil.rmtree(tmp_dir)
+        sys.exit(1)
 
 def fetch_npm_package(package_name: str) -> str:
     """
