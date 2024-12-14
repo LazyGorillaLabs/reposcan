@@ -10,6 +10,7 @@ Supported input formats:
    
 2. PyPI packages:
    - pypi:packagename
+   - pip:packagename (alias)
    
 3. NPM packages:
    - npm:packagename
@@ -78,10 +79,11 @@ def is_github_repo_url(repo_input: str) -> bool:
 def is_pypi_input(repo_input: str) -> bool:
     """
     Detect if input is a PyPI package reference.
-    Form:
+    Forms:
     - pypi:packagename
+    - pip:packagename
     """
-    return repo_input.startswith("pypi:")
+    return repo_input.startswith("pypi:") or repo_input.startswith("pip:")
 
 def is_npm_input(repo_input: str) -> bool:
     """
@@ -358,7 +360,7 @@ def fetch_code_source(repo_input: str) -> str:
         return fetch_github_repo(repo_input)
 
     if is_pypi_input(repo_input):
-        package_name = repo_input.split("pypi:", 1)[1]
+        package_name = repo_input.split(":", 1)[1]
         return fetch_pypi_package(package_name.strip())
 
     if is_npm_input(repo_input):
