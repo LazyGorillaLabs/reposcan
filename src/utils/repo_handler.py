@@ -211,20 +211,61 @@ def fetch_npm_package(package_name: str) -> str:
     """
     Fetch an NPM package:
     Form: npm:packagename
-
-    Placeholder:
-    Steps might be:
-    1. `npm pack packagename` in a tmp_dir
-    2. Extract the resulting tarball
-    3. Return the extracted directory
+    
+    Steps:
+    1. Create temp directories for download and extraction
+    2. Use npm pack to download the package
+    3. Extract the resulting tarball
+    4. Return the path to the extracted package contents
+    
+    Returns:
+        str: Path to directory containing extracted package
     """
     logger.info(f"Fetching NPM package: {package_name}")
+    
+    # Create temp directories
     tmp_dir = tempfile.mkdtemp(prefix="repo_scan_npm_")
-    # Pseudocode:
-    # subprocess.run(["npm", "pack", package_name], cwd=tmp_dir, check=True)
-    # Find the resulting .tgz, extract it
-    # return extracted directory
-    return tmp_dir
+    extract_dir = os.path.join(tmp_dir, "extracted")
+    os.makedirs(extract_dir)
+    
+    try:
+        # Run npm pack to download the package
+        logger.debug(f"Running npm pack for {package_name}")
+        result = subprocess.run(
+            ["npm", "pack", package_name],
+            cwd=tmp_dir,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        
+        # npm pack outputs the filename of the created tarball
+        tarball_name = result.stdout.strip()
+        tarball_path = os.path.join(tmp_dir, tarball_name)
+        
+        if not os.path.exists(tarball_path):
+            raise FileNotFoundError(f"NPM pack did not create expected tarball: {tarball_path}")
+            
+        # Extract the tarball
+        with tarfile.open(tarball_path, 'r:gz') as tar:
+            # npm packages have a 'package' directory at root
+            tar.extractall(extract_dir)
+            
+        # The contents will be in a 'package' directory
+        package_dir = os.path.join(extract_dir, 'package')
+        if not os.path.exists(package_dir):
+            raise FileNotFoundError(f"Expected package directory not found in npm package")
+            
+        return package_dir
+        
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to fetch npm package {package_name}: {e.stderr}")
+        shutil.rmtree(tmp_dir)
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error processing npm package {package_name}: {str(e)}")
+        shutil.rmtree(tmp_dir)
+        sys.exit(1)
 
 def fetch_github_file(file_url: str) -> str:
     """
