@@ -18,8 +18,8 @@ def generate_report(scan_results: dict) -> str:
         report_lines.insert(1, "No suspicious patterns found.\n")
         logger.info("No suspicious patterns detected.")
     else:
-        summary = f"**Summary:** {suspicious_count} files with suspicious patterns.\n"
+        summary = f"**Summary:** {suspicious_count} files with flagged patterns.\n"
         report_lines.insert(1, summary)
-        logger.info(f"Suspicious patterns found in {suspicious_count} files.")
+        logger.info(f"Flagged patterns found in {suspicious_count} files.")
 
     return "\n".join(report_lines)

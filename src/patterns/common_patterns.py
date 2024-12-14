@@ -13,7 +13,7 @@ SUSPICIOUS_PATTERNS = {
     "http_url": re.compile(r"https?://[^\s'\"]+"),
     "eval_call": re.compile(r"\beval\s*\("),
     "exec_call": re.compile(r"\bexec\s*\("),
-    "suspicious_import": re.compile(r"(importlib\.import_module|__import__|import )"),
+    "code_import": re.compile(r"(importlib\.import_module|__import__|import )"),
     
     # New Common Patterns
     # 1. IP addresses (IPv4 only, naive)
