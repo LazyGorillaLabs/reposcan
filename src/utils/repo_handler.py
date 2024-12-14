@@ -44,6 +44,7 @@ import shutil
 import subprocess
 import tarfile
 import zipfile
+import requests
 from pathlib import Path
 from src.utils.config import FILE_EXTENSIONS_TO_SCAN
 from src.utils.logger import logger
@@ -223,22 +224,32 @@ def fetch_remote_file(file_url: str) -> str:
     - https://host/file.py
 
     Steps:
-    1. Download the file using requests or urllib
+    1. Download the file using requests
     2. Save to a temp directory
     3. Return the file path
 
-    Placeholder for now.
+    Raises:
+        requests.exceptions.RequestException: If download fails
     """
     logger.info(f"Fetching remote file: {file_url}")
     tmp_dir = tempfile.mkdtemp(prefix="repo_scan_file_")
     filename = os.path.basename(file_url)
     local_path = os.path.join(tmp_dir, filename)
-    # Pseudocode:
-    # import requests
-    # r = requests.get(file_url, timeout=30)
-    # with open(local_path, 'wb') as f:
-    #     f.write(r.content)
-    return local_path  # Just returning local_path as if downloaded.
+    
+    try:
+        response = requests.get(file_url, timeout=30)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        
+        with open(local_path, 'wb') as f:
+            f.write(response.content)
+            
+        logger.debug(f"Successfully downloaded {file_url} to {local_path}")
+        return local_path
+        
+    except requests.exceptions.RequestException as e:
+        shutil.rmtree(tmp_dir)
+        logger.error(f"Failed to download {file_url}: {str(e)}")
+        sys.exit(1)
 
 #############################
 # Main fetch entry point
