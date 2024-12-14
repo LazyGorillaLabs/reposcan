@@ -53,14 +53,23 @@ from src.utils.logger import logger
 # Helper detection functions
 #############################
 
-def is_github_input(repo_input: str) -> bool:
+def is_github_file_url(repo_input: str) -> bool:
+    """
+    Detect if input is a GitHub file URL.
+    Form: https://github.com/user/repo/blob/branch/path/to/file
+    """
+    if repo_input.startswith("https://github.com/"):
+        return "/blob/" in repo_input
+    return False
+
+def is_github_repo_url(repo_input: str) -> bool:
     """
     Detect if input is a GitHub repo reference.
     Supported forms:
     - https://github.com/user/repo(.git)
     - github:user/repo
     """
-    if repo_input.startswith("https://github.com/"):
+    if repo_input.startswith("https://github.com/") and not "/blob/" in repo_input:
         return True
     if repo_input.startswith("github:"):
         return True
@@ -217,6 +226,22 @@ def fetch_npm_package(package_name: str) -> str:
     # return extracted directory
     return tmp_dir
 
+def fetch_github_file(file_url: str) -> str:
+    """
+    Fetch a single file from GitHub.
+    Converts: 
+    https://github.com/user/repo/blob/branch/path/to/file
+    to:
+    https://raw.githubusercontent.com/user/repo/branch/path/to/file
+    """
+    logger.info(f"Fetching GitHub file: {file_url}")
+    
+    # Convert GitHub blob URL to raw URL
+    raw_url = file_url.replace("github.com", "raw.githubusercontent.com")
+    raw_url = raw_url.replace("/blob/", "/")
+    
+    return fetch_remote_file(raw_url)
+
 def fetch_remote_file(file_url: str) -> str:
     """
     Fetch a single remote file:
@@ -268,7 +293,10 @@ def fetch_code_source(repo_input: str) -> str:
 
     Return a local path (dir or file) ready for scanning.
     """
-    if is_github_input(repo_input):
+    if is_github_file_url(repo_input):
+        return fetch_github_file(repo_input)
+        
+    if is_github_repo_url(repo_input):
         return fetch_github_repo(repo_input)
 
     if is_pypi_input(repo_input):
