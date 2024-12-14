@@ -2,14 +2,27 @@
 """
 Main entry point of the application.
 
-Now the code uses fetch_code_source() to handle various input types:
-- GitHub (github:user/repo or https://github.com/user/repo) - working
-- PyPI (pypi:packagename) - not yet implemented, will error
-- NPM (npm:packagename) - not yet implemented, will error
-- Remote file (http://host/file.js) - not yet implemented, will error
-- Local directory or file - working
+The code uses fetch_code_source() to handle various input types:
+- GitHub repositories:
+  - https://github.com/user/repo
+  - https://github.com/user/repo.git
+  - github:user/repo
+  - Single files via https://github.com/user/repo/blob/branch/path/to/file
+- PyPI packages:
+  - pypi:packagename
+- NPM packages:
+  - npm:packagename
+- Remote files:
+  - http://host/file.js
+  - https://host/file.py
+- Local directories & files:
+  - /path/to/local/dir
+  - /path/to/local/file.py
 
-Then it scans the resulting directory/file.
+The code will scan the fetched source using:
+- Pattern matching (always enabled)
+- Python AST analysis (enabled by default, disable with --no-ast)
+- ESLint for JS/TS (enabled by default, disable with --no-eslint)
 
 Usage:
   python -m src.main <input> [--no-ast] [--no-eslint]
