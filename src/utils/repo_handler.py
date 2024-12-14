@@ -150,25 +150,88 @@ def fetch_pypi_package(package_name: str) -> str:
     Fetch a PyPI package and extract its contents.
     Form: pypi:packagename
     
-    Steps:
-    1. Create temp directory
-    2. Download package using pip
-    3. Find and extract the downloaded archive
-    4. Return path to extracted contents
+    Attempts to fetch source code in this order:
+    1. Try PyPI JSON API to get source distribution
+    2. Try pip download with --no-binary flag
+    3. Fall back to regular pip download if both above fail
     
     Returns:
         str: Path to directory containing extracted package
     """
     logger.info(f"Fetching PyPI package: {package_name}")
     
-    # Create temp directory for download
+    def extract_archive(archive_path: str, extract_dir: str) -> None:
+        if archive_path.endswith('.tar.gz'):
+            with tarfile.open(archive_path, 'r:gz') as tar:
+                tar.extractall(extract_dir)
+        elif archive_path.endswith(('.zip', '.whl')):
+            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+
+    def get_package_dir(extract_dir: str) -> str:
+        subdirs = [d for d in os.listdir(extract_dir) 
+                  if os.path.isdir(os.path.join(extract_dir, d))]
+        if subdirs:
+            return os.path.join(extract_dir, subdirs[0])
+        return extract_dir
+
     tmp_dir = tempfile.mkdtemp(prefix="repo_scan_pypi_")
     extract_dir = os.path.join(tmp_dir, "extracted")
     os.makedirs(extract_dir)
     
     try:
-        # Download the package
-        logger.debug(f"Downloading package {package_name}")
+        # First attempt: Use PyPI JSON API
+        try:
+            logger.debug(f"Attempting to fetch source distribution via PyPI API for {package_name}")
+            pypi_url = f"https://pypi.org/pypi/{package_name}/json"
+            response = requests.get(pypi_url)
+            response.raise_for_status()
+            package_data = response.json()
+            
+            # Look for source distribution
+            sdist_url = None
+            for url_info in package_data['urls']:
+                if url_info['packagetype'] == 'sdist':
+                    sdist_url = url_info['url']
+                    break
+                    
+            if sdist_url:
+                response = requests.get(sdist_url, stream=True)
+                response.raise_for_status()
+                
+                archive_path = os.path.join(tmp_dir, os.path.basename(sdist_url))
+                with open(archive_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                
+                extract_archive(archive_path, extract_dir)
+                return get_package_dir(extract_dir)
+        except Exception as e:
+            logger.debug(f"PyPI API attempt failed: {str(e)}")
+
+        # Second attempt: pip download with --no-binary flag
+        try:
+            logger.debug(f"Attempting pip download with --no-binary flag for {package_name}")
+            subprocess.run(
+                ["pip", "download", "--no-deps", "--no-binary", ":all:", 
+                 package_name, "-d", tmp_dir],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            
+            archives = [f for f in os.listdir(tmp_dir) 
+                       if f.endswith(('.tar.gz', '.zip'))]
+            
+            if archives:
+                archive_path = os.path.join(tmp_dir, archives[0])
+                extract_archive(archive_path, extract_dir)
+                return get_package_dir(extract_dir)
+        except Exception as e:
+            logger.debug(f"pip --no-binary attempt failed: {str(e)}")
+
+        # Final attempt: regular pip download
+        logger.warning(f"Falling back to regular pip download for {package_name}")
         subprocess.run(
             ["pip", "download", "--no-deps", package_name, "-d", tmp_dir],
             check=True,
@@ -176,7 +239,6 @@ def fetch_pypi_package(package_name: str) -> str:
             text=True
         )
         
-        # Find the downloaded archive
         archives = [f for f in os.listdir(tmp_dir) 
                    if f.endswith(('.tar.gz', '.zip', '.whl'))]
         
@@ -184,28 +246,11 @@ def fetch_pypi_package(package_name: str) -> str:
             raise FileNotFoundError(f"No package archive found for {package_name}")
             
         archive_path = os.path.join(tmp_dir, archives[0])
+        extract_archive(archive_path, extract_dir)
+        return get_package_dir(extract_dir)
         
-        # Extract based on archive type
-        if archive_path.endswith('.tar.gz'):
-            with tarfile.open(archive_path, 'r:gz') as tar:
-                tar.extractall(extract_dir)
-        elif archive_path.endswith(('.zip', '.whl')):  # wheels are zip files
-            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
-                zip_ref.extractall(extract_dir)
-                
-        # Find the actual package directory (usually first subdirectory)
-        subdirs = [d for d in os.listdir(extract_dir) 
-                  if os.path.isdir(os.path.join(extract_dir, d))]
-        if subdirs:
-            return os.path.join(extract_dir, subdirs[0])
-        return extract_dir
-        
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to download package {package_name}: {e.stderr}")
-        shutil.rmtree(tmp_dir)
-        sys.exit(1)
     except Exception as e:
-        logger.error(f"Error processing package {package_name}: {str(e)}")
+        logger.error(f"All attempts to fetch package {package_name} failed: {str(e)}")
         shutil.rmtree(tmp_dir)
         sys.exit(1)
 
