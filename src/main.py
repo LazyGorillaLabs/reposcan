@@ -10,6 +10,7 @@ The code uses fetch_code_source() to handle various input types:
   - Single files via https://github.com/user/repo/blob/branch/path/to/file
 - PyPI packages:
   - pypi:packagename
+  - pip:packagename
 - NPM packages:
   - npm:packagename
 - Remote files:
