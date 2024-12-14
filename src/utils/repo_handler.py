@@ -207,6 +207,19 @@ def fetch_pypi_package(package_name: str) -> str:
         shutil.rmtree(tmp_dir)
         sys.exit(1)
 
+def is_npm_installed() -> bool:
+    """Check if npm is available in the system."""
+    try:
+        subprocess.run(
+            ["npm", "--version"],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
 def fetch_npm_package(package_name: str) -> str:
     """
     Fetch an NPM package:
@@ -222,6 +235,10 @@ def fetch_npm_package(package_name: str) -> str:
         str: Path to directory containing extracted package
     """
     logger.info(f"Fetching NPM package: {package_name}")
+    
+    if not is_npm_installed():
+        logger.error("npm is not installed. Please install Node.js and npm first.")
+        sys.exit(1)
     
     # Create temp directories
     tmp_dir = tempfile.mkdtemp(prefix="repo_scan_npm_")
