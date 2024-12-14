@@ -12,7 +12,7 @@ Now the code uses fetch_code_source() to handle various input types:
 Then it scans the resulting directory/file.
 
 Usage:
-  python -m src.main <input> [--use-ast] [--use-eslint]
+  python -m src.main <input> [--no-ast] [--no-eslint]
 """
 
 import sys
@@ -30,13 +30,13 @@ from src.utils.logger import logger
 def main():
     parser = argparse.ArgumentParser(description="Scan a code source for suspicious code.")
     parser.add_argument("repo_path", help="GitHub, PyPI, NPM, remote file, local dir/file")
-    parser.add_argument("--use-ast", action="store_true", help="Enable Python AST scanning")
-    parser.add_argument("--use-eslint", action="store_true", help="Enable ESLint scanning for JS/TS files")
+    parser.add_argument("--no-ast", action="store_true", help="Disable Python AST scanning")
+    parser.add_argument("--no-eslint", action="store_true", help="Disable ESLint scanning for JS/TS files")
     args = parser.parse_args()
 
     repo_input = args.repo_path
-    use_ast = args.use_ast
-    use_eslint = args.use_eslint
+    use_ast = not args.no_ast
+    use_eslint = not args.no_eslint
 
     logger.info(f"Starting scan for: {repo_input}. AST={use_ast}, ESLint={use_eslint}")
     final_path = fetch_code_source(repo_input)
