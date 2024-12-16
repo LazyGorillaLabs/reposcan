@@ -3,7 +3,7 @@
 A module to check dependencies for known vulnerabilities or questionable packages.
 
 Overall Goals:
-- Parse dependency manifests (requirements.txt, pyproject.toml, package.json, etc.)
+- Get the dependencies for this file that is being scanned
 - Identify and report known vulnerabilities using external tools or APIs.
 - Return findings in a format consistent with other scanners (e.g., { "file_path": { "finding_category": [...] } })
 
@@ -19,90 +19,75 @@ Approach:
    - Eventually, we could combine these approaches, starting simple (external tools) and expanding as needed.
 
 3. Report Findings:
-   - Produce a dictionary that maps either:
-     - The manifest file (e.g., requirements.txt) to a set of findings (package, version, known CVEs), or
-     - Individual dependencies to findings.
-   - Integrate seamlessly with final reporting. Possibly a "dependency_issues" key containing arrays of vulnerabilities.
+   - Produce a dictionary that maps individual dependencies to findings.
+   - Integrate seamlessly with final reporting. Possibly a "dependency_concerns" key containing arrays of vulnerabilities.
 
-Future Considerations:
-- Caching results to avoid repeatedly querying APIs.
+Future Considerations (just keep in mind for now, noting in the code where it may go in future:
+- Caching results to avoid repeatedly querying APIs (lots of imports may be the same from run to run, can assume no new vulnerabilities within a single run timeframe).
 - Allowing configuration for different vulnerability sources.
 - Providing remediation suggestions or direct CVE links.
 
 Example Workflow:
 - When scanning a repo:
-  1. Identify project type (Python, Node, etc.) by checking for certain files.
-  2. If Python: run `pip-audit` and parse results.
-  3. If Node: run `npm audit --json` and parse results.
-  4. Convert output into a standardized format.
-  5. Return these findings to main.py, which merges them with other scanner results.
+  1. Identify project type (Python, Node, etc.) by the code of the file
+  2. Pull list of dependencies to check from the file
+  3. If Python: run `pip-audit` over dependencies and parse results.
+  4. If Node: run `npm audit --json` and parse results.
+  5. Convert output into a standardized format.
+  6. Return these findings to main.py, which merges them with other scanner results.
 
 This modular design ensures we can easily add new methods or sources of vulnerability data later.
 """
 
-def identify_dependencies(repo_path: str) -> dict:
+def identify_dependencies(file_path: str) -> dict:
     """
-    Identify dependencies in the given repository path.
-    Returns a dict like:
+    Identify dependencies in the given file
+    Returns a language and dependency dict like:
     {
-      "python": {
-        "requirements.txt": [(pkg_name, version), ...],
-        "pyproject.toml": [(pkg_name, version), ...],
-      },
-      "node": {
-        "package.json": [(pkg_name, version), ...],
-      }
-    }
+      "python": [
+        {"pkg_name1": version},
+        {"pkg_name2": version}
+    ]}
 
     For now, just a placeholder:
-    - In a real implementation, scan repo_path for known manifest files.
-    - Parse them to extract dependencies.
-
-    Returning an empty dict for now.
+    - In a real implementation, return the actual dependencies from the file 
     """
     return {}
 
 def run_vulnerability_checks(dependencies: dict) -> dict:
     """
-    Given a dict of dependencies by ecosystem and file,
+    Given a dict of dependencies,
     run external tools or query APIs to find known vulnerabilities.
 
     Returns something like:
     {
-      "path/to/requirements.txt": {
-        "dependency_issues": [
-          {
-            "package": "requests",
-            "version": "2.10.0",
-            "vulnerabilities": [
-              {"id": "CVE-2020-1234", "description": "...", "severity": "high"},
-              ...
-            ]
-          }
-        ]
-      },
-      "path/to/package.json": {
-        "dependency_issues": [...]
-      }
+      "dependency_issues": [
+        {
+          "package": "requests",
+          "version": "2.10.0",
+          "vulnerabilities": [
+            {"id": "CVE-2020-1234", "description": "...", "severity": "high"},
+            ...
+          ]
+        }
+      ]
     }
 
     For now, just returns an empty dict.
     """
     return {}
 
-def scan_dependencies(repo_path: str) -> dict:
+def scan_dependencies(file_path: str) -> dict:
     """
     High-level function to:
-    1. Identify dependencies in repo_path.
+    1. Identify dependencies in file.
     2. Run vulnerability checks on them.
     3. Return a structured dict of findings.
 
-    This allows main.py to just call scan_dependencies() once
-    and merge results with other scanners.
 
     For now, returns empty results.
     """
-    deps = identify_dependencies(repo_path)
+    deps = identify_dependencies(file_path)
     findings = run_vulnerability_checks(deps)
     return findings
 

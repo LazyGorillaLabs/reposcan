@@ -38,6 +38,7 @@ from src.utils.repo_handler import fetch_code_source, gather_files
 from src.scanners.pattern_scanner import scan_file_for_patterns
 from src.scanners.ast_scanner import scan_python_file_with_ast
 from src.scanners.eslint_scanner import scan_js_file_with_eslint
+from src.scanners.dependency_checker import scan_dependencies
 from src.utils.report_generator import generate_report
 from src.utils.logger import logger
 
@@ -71,6 +72,11 @@ def main():
             logger.debug(f"Scanning file: {fpath}")
             # Regex-based scan
             result = scan_file_for_patterns(fpath)
+
+            # Check dependencies against existing tools/databases for known vulnerabilities
+            dependency_result = scan_dependencies(fpath)
+            for k, v in dependency_result.items():
+                result.setdefault(k, []).extend(v)
 
             # Python AST scan if enabled
             if use_ast and fpath.endswith(".py"):
