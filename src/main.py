@@ -38,7 +38,7 @@ from src.utils.repo_handler import fetch_code_source, gather_files
 from src.scanners.pattern_scanner import scan_file_for_patterns
 from src.scanners.ast_scanner import scan_python_file_with_ast
 from src.scanners.eslint_scanner import scan_js_file_with_eslint
-from src.scanners.dependency_checker import scan_dependencies
+from src.scanners.dependency_checker import scan_repo_dependencies, scan_file_dependencies
 from src.utils.report_generator import generate_report
 from src.utils.logger import logger
 
@@ -68,13 +68,16 @@ def main():
         logger.info(f"Found {len(files_to_scan)} files to scan.")
 
         scan_results = {}
+        # put repo level dependency checking here
+        scan_results["Dependencies"], dependency_manifest = scan_repo_dependencies(final_path)
+
         for fpath in files_to_scan:
             logger.debug(f"Scanning file: {fpath}")
             # Regex-based scan
             result = scan_file_for_patterns(fpath)
 
-            # Check dependencies against existing tools/databases for known vulnerabilities
-            dependency_result = scan_dependencies(fpath)
+            # Check dependencies against manifest need to pass in known imports to compare agains
+            dependency_result = scan_file_dependencies(fpath, dependency_manifest)
             for k, v in dependency_result.items():
                 result.setdefault(k, []).extend(v)
 

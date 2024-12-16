@@ -18,35 +18,42 @@ Approach:
    - Option B: Query vulnerability APIs (like the OSV API or GitHub Advisory Database).
    - Eventually, we could combine these approaches, starting simple (external tools) and expanding as needed.
 
-3. Report Findings:
+3. Don't trust the devs:
+    Compare dependency manifest to actual imports to ensure consistency
+
+4. Report Findings:
    - Produce a dictionary that maps individual dependencies to findings.
    - Integrate seamlessly with final reporting. Possibly a "dependency_concerns" key containing arrays of vulnerabilities.
 
 Future Considerations (just keep in mind for now, noting in the code where it may go in future:
-- Caching results to avoid repeatedly querying APIs (lots of imports may be the same from run to run, can assume no new vulnerabilities within a single run timeframe).
+- Caching results to avoid repeatedly querying APIs 
 - Allowing configuration for different vulnerability sources.
 - Providing remediation suggestions or direct CVE links.
 
 Example Workflow:
 - When scanning a repo:
-  1. Identify project type (Python, Node, etc.) by the code of the file
-  2. Pull list of dependencies to check from the file
-  3. If Python: run `pip-audit` over dependencies and parse results.
-  4. If Node: run `npm audit --json` and parse results.
+  1. Identify project type (Python, Node, etc.) by the code of the repo
+  2. Grab a dependency manifest if available - if not, that's useful info
+  3. Check repo dependency manifest for known vulnerabilities.
+     If Python: run `pip-audit` over dependencies and parse results.
+     If Node: run `npm audit --json` and parse results.
+  4. When doing the individual files:
+     Pull list of dependencies from the file
+     ensure the dependency is listed in the manifest, or red-flag it
   5. Convert output into a standardized format.
   6. Return these findings to main.py, which merges them with other scanner results.
 
 This modular design ensures we can easily add new methods or sources of vulnerability data later.
 """
 
-def identify_dependencies(file_path: str) -> dict:
+def identify_file_dependencies(file_path: str) -> dict:
     """
     Identify dependencies in the given file
     Returns a language and dependency dict like:
     {
       "python": [
-        {"pkg_name1": version},
-        {"pkg_name2": version}
+        "pkg_name1" ,
+        "pkg_name2":
     ]}
 
     For now, just a placeholder:
@@ -54,7 +61,45 @@ def identify_dependencies(file_path: str) -> dict:
     """
     return {}
 
-def run_vulnerability_checks(dependencies: dict) -> dict:
+
+def scan_file_dependencies(file_path: str, import_manifest: [str]) -> dict:
+    """
+    High-level function to:
+    1. Identify dependencies in file.
+    2. Ensure it's in the manifest
+    3. Return a structured dict of findings.
+
+
+    For now, returns empty results.
+    """
+    deps = identify_file_dependencies(file_path)
+    findings = {}#build findings here
+    return findings
+
+def identify_repo_dependencies(repo_path: str) -> dict:
+    """
+    Identify dependencies in the given repository path.
+    Returns a dict like:
+    {
+      "python": {
+        "requirements.txt": [(pkg_name, version), ...],
+        "pyproject.toml": [(pkg_name, version), ...],
+      },
+      "node": {
+        "package.json": [(pkg_name, version), ...],
+      }
+    }
+
+    For now, just a placeholder:
+    - In a real implementation, scan repo_path for known manifest files.
+    - Parse them to extract dependencies.
+
+    Returning an empty dict for now.
+    """
+    return {}
+
+
+def run_repo_vulnerability_checks(dependencies: dict) -> dict:
     """
     Given a dict of dependencies,
     run external tools or query APIs to find known vulnerabilities.
@@ -77,17 +122,17 @@ def run_vulnerability_checks(dependencies: dict) -> dict:
     """
     return {}
 
-def scan_dependencies(file_path: str) -> dict:
+def scan_repo_dependencies(repo_path: str) -> dict:
     """
     High-level function to:
-    1. Identify dependencies in file.
+    1. Identify dependencies in repo
     2. Run vulnerability checks on them.
     3. Return a structured dict of findings.
 
 
     For now, returns empty results.
     """
-    deps = identify_dependencies(file_path)
-    findings = run_vulnerability_checks(deps)
-    return findings
-
+    deps = identify_repo_dependencies(repo_path)
+    findings = run_repo_vulnerability_checks(deps)
+    manifest = []
+    return findings, manifest
