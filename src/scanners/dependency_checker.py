@@ -1,4 +1,9 @@
 # project_root/src/scanners/dependency_checker.py
+import os
+import json
+import tomli
+import re
+from pathlib import Path
 """
 A module to check dependencies for known vulnerabilities or questionable packages.
 
@@ -76,6 +81,67 @@ def scan_file_dependencies(file_path: str, import_manifest: [str]) -> dict:
     findings = {}#build findings here
     return findings
 
+def parse_requirements_txt(file_path: str) -> list:
+    """Parse requirements.txt file and return list of (package, version) tuples"""
+    deps = []
+    with open(file_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                # Handle different requirement formats
+                if '==' in line:
+                    pkg, ver = line.split('==')
+                    deps.append((pkg.strip(), ver.strip()))
+                elif '>=' in line:
+                    pkg, ver = line.split('>=')
+                    deps.append((pkg.strip(), f">={ver.strip()}"))
+                else:
+                    # Package with no version specified
+                    deps.append((line, ""))
+    return deps
+
+def parse_pyproject_toml(file_path: str) -> list:
+    """Parse pyproject.toml and return list of (package, version) tuples"""
+    deps = []
+    with open(file_path, 'rb') as f:
+        try:
+            data = tomli.load(f)
+            # Check project.dependencies
+            project_deps = data.get('project', {}).get('dependencies', [])
+            if project_deps:
+                for dep in project_deps:
+                    if ' ' in dep:
+                        pkg, ver = dep.split(' ', 1)
+                        deps.append((pkg.strip(), ver.strip()))
+                    else:
+                        deps.append((dep.strip(), ""))
+            
+            # Check tool.poetry.dependencies
+            poetry_deps = data.get('tool', {}).get('poetry', {}).get('dependencies', {})
+            if poetry_deps:
+                for pkg, ver in poetry_deps.items():
+                    if pkg != 'python':  # Skip python version constraint
+                        deps.append((pkg, str(ver)))
+        except Exception as e:
+            print(f"Error parsing pyproject.toml: {e}")
+    return deps
+
+def parse_package_json(file_path: str) -> list:
+    """Parse package.json and return list of (package, version) tuples"""
+    deps = []
+    with open(file_path) as f:
+        try:
+            data = json.load(f)
+            # Regular dependencies
+            dependencies = data.get('dependencies', {})
+            deps.extend((pkg, ver) for pkg, ver in dependencies.items())
+            # Dev dependencies
+            dev_dependencies = data.get('devDependencies', {})
+            deps.extend((pkg, ver) for pkg, ver in dev_dependencies.items())
+        except Exception as e:
+            print(f"Error parsing package.json: {e}")
+    return deps
+
 def identify_repo_dependencies(repo_path: str) -> dict:
     """
     Identify dependencies in the given repository path.
@@ -89,14 +155,44 @@ def identify_repo_dependencies(repo_path: str) -> dict:
         "package.json": [(pkg_name, version), ...],
       }
     }
-
-    For now, just a placeholder:
-    - In a real implementation, scan repo_path for known manifest files.
-    - Parse them to extract dependencies.
-
-    Returning an empty dict for now.
     """
-    return {}
+    result = {
+        "python": {},
+        "node": {}
+    }
+    
+    repo_path = Path(repo_path)
+    
+    # Look for Python dependency files
+    for req_file in repo_path.rglob('requirements.txt'):
+        try:
+            deps = parse_requirements_txt(str(req_file))
+            if deps:
+                rel_path = str(req_file.relative_to(repo_path))
+                result["python"][rel_path] = deps
+        except Exception as e:
+            print(f"Error processing {req_file}: {e}")
+    
+    for pyproject in repo_path.rglob('pyproject.toml'):
+        try:
+            deps = parse_pyproject_toml(str(pyproject))
+            if deps:
+                rel_path = str(pyproject.relative_to(repo_path))
+                result["python"][rel_path] = deps
+        except Exception as e:
+            print(f"Error processing {pyproject}: {e}")
+    
+    # Look for Node.js dependency files
+    for pkg_json in repo_path.rglob('package.json'):
+        try:
+            deps = parse_package_json(str(pkg_json))
+            if deps:
+                rel_path = str(pkg_json.relative_to(repo_path))
+                result["node"][rel_path] = deps
+        except Exception as e:
+            print(f"Error processing {pkg_json}: {e}")
+    
+    return result
 
 
 def run_repo_vulnerability_checks(dependencies: dict) -> dict:
