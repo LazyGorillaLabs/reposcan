@@ -3,7 +3,10 @@ import os
 import json
 import tomli
 import re
+import subprocess
+import tempfile
 from pathlib import Path
+from typing import Dict, List, Tuple
 """
 A module to check dependencies for known vulnerabilities or questionable packages.
 
@@ -195,28 +198,115 @@ def identify_repo_dependencies(repo_path: str) -> dict:
     return result
 
 
+def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
+    """Run pip-audit on the given dependencies and return findings"""
+    if not deps:
+        return []
+    
+    # Create a temporary requirements.txt
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as tmp:
+        for pkg, ver in deps:
+            if ver:
+                tmp.write(f"{pkg}=={ver}\n")
+            else:
+                tmp.write(f"{pkg}\n")
+        tmp_path = tmp.name
+
+    try:
+        # Run pip-audit with JSON output
+        cmd = ['pip-audit', '--requirement', tmp_path, '--format', 'json']
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            return []  # No vulnerabilities found
+        
+        try:
+            audit_data = json.loads(result.stdout)
+            vulnerabilities = []
+            
+            for vuln in audit_data.get('vulnerabilities', []):
+                vulnerabilities.append({
+                    "package": vuln.get('name'),
+                    "version": vuln.get('version'),
+                    "vulnerabilities": [{
+                        "id": v.get('id'),
+                        "description": v.get('description'),
+                        "severity": v.get('severity', 'unknown')
+                    } for v in vuln.get('vulns', [])]
+                })
+            return vulnerabilities
+        except json.JSONDecodeError:
+            return []
+            
+    except subprocess.CalledProcessError:
+        return []
+    finally:
+        os.unlink(tmp_path)
+
+def _run_npm_audit(deps: List[Tuple[str, str]]) -> List[dict]:
+    """Run npm audit on the given dependencies and return findings"""
+    if not deps:
+        return []
+    
+    # Create a temporary package.json
+    package_json = {
+        "name": "temp-audit-pkg",
+        "version": "1.0.0",
+        "dependencies": {
+            pkg: ver if ver else "latest" for pkg, ver in deps
+        }
+    }
+    
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        pkg_path = os.path.join(tmp_dir, 'package.json')
+        with open(pkg_path, 'w') as f:
+            json.dump(package_json, f)
+        
+        try:
+            # Run npm install and npm audit
+            subprocess.run(['npm', 'install', '--prefix', tmp_dir], 
+                         capture_output=True, check=True)
+            result = subprocess.run(['npm', 'audit', '--json', '--prefix', tmp_dir],
+                                 capture_output=True, text=True)
+            
+            try:
+                audit_data = json.loads(result.stdout)
+                vulnerabilities = []
+                
+                for adv in audit_data.get('advisories', {}).values():
+                    vulnerabilities.append({
+                        "package": adv.get('module_name'),
+                        "version": adv.get('findings', [{}])[0].get('version'),
+                        "vulnerabilities": [{
+                            "id": adv.get('github_advisory_id') or adv.get('cve'),
+                            "description": adv.get('overview'),
+                            "severity": adv.get('severity')
+                        }]
+                    })
+                return vulnerabilities
+            except json.JSONDecodeError:
+                return []
+                
+        except subprocess.CalledProcessError:
+            return []
+
 def run_repo_vulnerability_checks(dependencies: dict) -> dict:
     """
-    Given a dict of dependencies,
-    run external tools or query APIs to find known vulnerabilities.
-
-    Returns something like:
-    {
-      "dependency_issues": [
-        {
-          "package": "requests",
-          "version": "2.10.0",
-          "vulnerabilities": [
-            {"id": "CVE-2020-1234", "description": "...", "severity": "high"},
-            ...
-          ]
-        }
-      ]
-    }
-
-    For now, just returns an empty dict.
+    Given a dict of dependencies, run external tools or query APIs to find known vulnerabilities.
     """
-    return {}
+    findings = {"dependency_issues": []}
+    
+    # Check Python dependencies
+    for file_deps in dependencies.get("python", {}).values():
+        python_vulns = _run_pip_audit(file_deps)
+        findings["dependency_issues"].extend(python_vulns)
+    
+    # Check Node.js dependencies
+    for file_deps in dependencies.get("node", {}).values():
+        node_vulns = _run_npm_audit(file_deps)
+        findings["dependency_issues"].extend(node_vulns)
+    
+    return findings
 
 def scan_repo_dependencies(repo_path: str) -> dict:
     """
