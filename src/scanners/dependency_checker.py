@@ -222,38 +222,58 @@ def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
                 tmp.write(f"{pkg}\n")
         tmp_path = tmp.name
 
+    findings = []
     try:
-        # Run pip-audit with JSON output
+        # First try to detect dependency conflicts
+        cmd = ['pip', 'install', '--dry-run', '--no-deps', '-r', tmp_path]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if "ResolutionImpossible" in result.stderr:
+            logger.warning("Detected dependency conflicts in requirements")
+            findings.append({
+                "package": "requirements",
+                "version": "N/A",
+                "vulnerabilities": [{
+                    "id": "DEPENDENCY_CONFLICT",
+                    "description": "Conflicting dependencies detected. This could mask security issues.",
+                    "severity": "medium"
+                }]
+            })
+        
+        # Now try pip-audit
         logger.info(f"Attempting pip-audit on {len(deps)} dependencies")
         cmd = ['pip-audit', '--requirement', tmp_path, '--format', 'json']
         result = subprocess.run(cmd, capture_output=True, text=True)
         
         if result.returncode == 0:
             logger.info("pip-audit completed successfully - no vulnerabilities found")
-            return []  # No vulnerabilities found
-        
-        try:
-            audit_data = json.loads(result.stdout)
-            vulnerabilities = []
+        else:
+            try:
+                # Try to parse JSON output if available
+                audit_data = json.loads(result.stdout)
+                for vuln in audit_data.get('vulnerabilities', []):
+                    findings.append({
+                        "package": vuln.get('name'),
+                        "version": vuln.get('version'),
+                        "vulnerabilities": [{
+                            "id": v.get('id'),
+                            "description": v.get('description'),
+                            "severity": v.get('severity', 'unknown')
+                        } for v in vuln.get('vulns', [])]
+                    })
+            except json.JSONDecodeError:
+                if "ResolutionImpossible" in result.stderr:
+                    logger.error("pip-audit failed due to dependency conflicts")
+                else:
+                    logger.error(f"pip-audit failed: {result.stderr}")
+                    
+        if findings:
+            logger.info(f"Found {len(findings)} dependency issues")
+        return findings
             
-            for vuln in audit_data.get('vulnerabilities', []):
-                vulnerabilities.append({
-                    "package": vuln.get('name'),
-                    "version": vuln.get('version'),
-                    "vulnerabilities": [{
-                        "id": v.get('id'),
-                        "description": v.get('description'),
-                        "severity": v.get('severity', 'unknown')
-                    } for v in vuln.get('vulns', [])]
-                })
-            if vulnerabilities:
-                logger.info(f"pip-audit found {len(vulnerabilities)} vulnerable packages")
-            return vulnerabilities
-        except json.JSONDecodeError:
-            return []
-            
-    except subprocess.CalledProcessError:
-        return []
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error running dependency check: {str(e)}")
+        return findings
     finally:
         os.unlink(tmp_path)
 
