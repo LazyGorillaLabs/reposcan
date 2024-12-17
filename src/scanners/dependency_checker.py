@@ -224,23 +224,6 @@ def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
 
     findings = []
     try:
-        # First try to detect dependency conflicts
-        cmd = ['pip', 'install', '--dry-run', '--no-deps', '-r', tmp_path]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        
-        if "ResolutionImpossible" in result.stderr:
-            logger.warning("Detected dependency conflicts in requirements")
-            findings.append({
-                "package": "requirements",
-                "version": "N/A",
-                "vulnerabilities": [{
-                    "id": "DEPENDENCY_CONFLICT",
-                    "description": "Conflicting dependencies detected. This could mask security issues.",
-                    "severity": "medium"
-                }]
-            })
-        
-        # Now try pip-audit
         logger.info(f"Attempting pip-audit on {len(deps)} dependencies")
         cmd = ['pip-audit', '--requirement', tmp_path, '--format', 'json']
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -264,6 +247,15 @@ def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
             except json.JSONDecodeError:
                 if "ResolutionImpossible" in result.stderr:
                     logger.error("pip-audit failed due to dependency conflicts")
+                    findings.append({
+                        "package": "requirements",
+                        "version": "N/A",
+                        "vulnerabilities": [{
+                            "id": "DEPENDENCY_CONFLICT",
+                            "description": "Conflicting dependencies detected. This could mask security issues.",
+                            "severity": "medium"
+                        }]
+                    })
                 else:
                     logger.error(f"pip-audit failed: {result.stderr}")
                     
