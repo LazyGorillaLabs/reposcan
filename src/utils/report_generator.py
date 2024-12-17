@@ -11,7 +11,7 @@ def generate_report(scan_results: dict) -> str:
         report_lines.append("## Dependency Analysis\n")
         dep_issues = scan_results["Dependencies"].get("dependency_issues", [])
         if dep_issues:
-            report_lines.append("### Vulnerabilities Found:\n")
+            report_lines.append("### Known Vulnerabilities Found:\n")
             for issue in dep_issues:
                 pkg = issue.get("package", "Unknown")
                 version = issue.get("version", "Unknown")
@@ -21,12 +21,14 @@ def generate_report(scan_results: dict) -> str:
                     severity = vuln.get("severity", "unknown")
                     desc = vuln.get("description", "No description available")
                     report_lines.append(f"  - **{vuln_id}** ({severity}): {desc}")
+                report_lines.append("")
             report_lines.append("")
         else:
             report_lines.append("No dependency vulnerabilities found.\n")
     
     # Handle file-specific findings
     suspicious_count = 0
+    report_lines.append("Static Code Analysis\n")
     for file_path, patterns_found in scan_results.items():
         if file_path != "Dependencies" and patterns_found:
             suspicious_count += 1

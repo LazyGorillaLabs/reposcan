@@ -12,9 +12,11 @@ In today’s open-source ecosystem, users frequently download and run code from 
 **What RepoScan Does Today:**
 
 - **Basic Pattern-Based Scanning:**  
-  RepoScan currently scans Python, JavaScript, and related file types for simple suspicious patterns. These include occurrences of `eval()`, `exec()`, suspicious imports, and hardcoded URLs.  
+  RepoScan currently scans Python, JavaScript, and related file types for simple suspicious patterns. These include occurrences of `eval()`, `exec()`, suspicious imports, and hardcoded URLs. These can direct limited attention to higher risk areas of code. 
 - **Local and Remote Repos:**  
-  It can clone a repository from a given GitHub URL or run checks directly on local directories.
+  It can clone a repository from a given GitHub URL, pypi package, npm package, a remote file, or run checks directly on local directories.
+- **Dependency Checks:**
+  Runs pip-audit or npm-audit on found dependency manifests to report known vulnerabilities. 
 - **Report Generation:**  
   Results are compiled into a human-readable Markdown report. Suspicious files and patterns are listed, giving the user a quick overview of potential concerns.
 - **Logging:**  
@@ -22,26 +24,6 @@ In today’s open-source ecosystem, users frequently download and run code from 
 
 At this stage, RepoScan is an MVP (Minimum Viable Product): a basic but functional tool that lays the groundwork for more advanced features.
 
-## Architecture & Code Structure
-
-The project is structured to allow easy expansion and modularity. Key directories and their purposes:
-
-- **`src/main.py`**: The entry point for the application’s CLI usage. It orchestrates cloning/fetching the repository, scanning files, and generating reports.
-- **`src/utils/`**:  
-  - `repo_handler.py`: Handles cloning, verifying local paths, and gathering target files for scanning.  
-  - `report_generator.py`: Formats and produces the final Markdown report.  
-  - `config.py`: Stores global configuration variables (e.g., file extensions to scan).  
-  - `logger.py`: Sets up the logging environment.
-- **`src/patterns/`**: Holds the regex-based suspicious patterns, separated by language in future expansions. Currently includes `common_patterns.py` for patterns shared across Python/JS.
-- **`src/scanners/`**:  
-  - `pattern_scanner.py`: The initial scanner that matches suspicious patterns in files.  
-  - Future scanners will be added here, such as `ast_scanner.py` for AST-based analysis or `dependency_checker.py`.
-- **`src/llm/`**:  
-  Reserved for future integration of Large Language Models (LLMs) to interpret code and produce advanced summaries.
-- **`tests/`**:  
-  Placeholder directory for unit tests to ensure code quality and maintainability.
-
-This modular structure allows developers and the community to add new features, patterns, and scanning strategies without disrupting the existing codebase.
 
 ## Usage
 
@@ -93,15 +75,15 @@ The tool generates a detailed Markdown report including:
 **Short-Term:**
 
 - Improve Pattern Scanning:
+- better detection for vitualization/sandbox/debugger detection
+- code obfuscation detection
+- patterns for crypto miners / encryption functions
 - Add more language-specific patterns and refine regex matches to reduce false positives.
 - Logging Improvements:
-- Fine-tune log levels and add more contextual logging to aid debugging.
-- Dependency Checker:
-Integrate a tool to identify if the repo depends on known-vulnerable or malicious packages (e.g., via CVE databases).
 
 **Medium-Term:**
 
-- AST-Based Analysis:
+- Better AST-Based Analysis:
 Implement or integrate existing AST scanners for Python and JavaScript to detect more subtle malicious behaviors (like dynamic code execution or suspicious control flows).
 - LLM Integration (Optional):
 Use a Large Language Model for deeper insights:
@@ -112,10 +94,7 @@ Use a Large Language Model for deeper insights:
 
 - Multi-Language Support:
 Expand beyond Python/JS to cover languages like Go, Rust, or C/C++.
-- Expand repositiories to include pypi/pip/npm etc
 - Advanced Telemetry module to determine what infomation is being gathered and shared with whom
-- better detection for vitualization/sandbox/debugger detection
-- code obfuscation detection
 - Community-Driven Rule Sets:
 Allow users to contribute their own suspicious pattern rules and share them, making RepoScan a community-driven project.
 - better detection for unwanted behaviors such as crypto miners
@@ -128,3 +107,24 @@ The project is still in its early stages. Community feedback, code contributions
 
 ## License
 MIT
+
+## Architecture & Code Structure
+
+The project is structured to allow easy expansion and modularity. Key directories and their purposes:
+
+- **`src/main.py`**: The entry point for the application’s CLI usage. It orchestrates cloning/fetching the repository, scanning files, and generating reports.
+- **`src/utils/`**:  
+  - `repo_handler.py`: Handles cloning, verifying local paths, and gathering target files for scanning.  
+  - `report_generator.py`: Formats and produces the final Markdown report.  
+  - `config.py`: Stores global configuration variables (e.g., file extensions to scan).  
+  - `logger.py`: Sets up the logging environment.
+- **`src/patterns/`**: Holds the regex-based suspicious patterns, separated by language in future expansions. Currently includes `common_patterns.py` for patterns shared across Python/JS.
+- **`src/scanners/`**:  
+  - `pattern_scanner.py`: The initial scanner that matches suspicious patterns in files.  
+  - Future scanners will be added here, such as `ast_scanner.py` for AST-based analysis or `dependency_checker.py`.
+- **`src/llm/`**:  
+  Reserved for future integration of Large Language Models (LLMs) to interpret code and produce advanced summaries.
+- **`tests/`**:  
+  Placeholder directory for unit tests to ensure code quality and maintainability.
+
+This modular structure allows developers and the community to add new features, patterns, and scanning strategies without disrupting the existing codebase.
