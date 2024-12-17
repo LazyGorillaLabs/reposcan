@@ -48,7 +48,10 @@ This modular structure allows developers and the community to add new features, 
 **Prerequisites:**
 
 - Python 3.7+ (Recommended)
-- `git` installed if you plan to scan remote repositories.
+- `git` installed for remote repositories
+- `npm` installed for JavaScript scanning (optional)
+- `pip-audit` for Python dependency checking
+- `eslint` for JavaScript analysis (optional)
 
 **Installation (Local Development):**
 
@@ -56,23 +59,34 @@ This modular structure allows developers and the community to add new features, 
 cd project_root
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt  # If a requirements file is present, else skip
+pip install -r requirements.txt
+npm install -g eslint  # Optional, for JavaScript scanning
 ```
+
 **Running the Tool:**
 
-To scan a remote GitHub repo:
-
+Basic usage with all scanners enabled:
 ```bash
-cd project_root
-python -m src.main https://github.com/someuser/somerepo
+python -m src.main <input>
 ```
-To scan a local directory:
 
+Disable specific scanners:
 ```bash
-cd project_root
-python -m src.main /path/to/local/repo
+python -m src.main <input> --no-ast --no-eslint
 ```
-The tool will print out a Markdown-formatted report to stdout.
+
+Input can be:
+- GitHub: `https://github.com/user/repo` or `github:user/repo`
+- PyPI: `pypi:packagename`
+- NPM: `npm:packagename`
+- Remote: `https://example.com/file.py`
+- Local: `/path/to/local/repo` or `/path/to/file.py`
+
+The tool generates a detailed Markdown report including:
+- Dependency vulnerability analysis
+- Suspicious code patterns
+- AST-based findings
+- ESLint warnings (if enabled)
 
 ## Roadmap & Planned Features
 
