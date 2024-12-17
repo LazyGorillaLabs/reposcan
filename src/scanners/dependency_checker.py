@@ -228,21 +228,20 @@ def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
         cmd = ['pip-audit', '--requirement', tmp_path, '--format', 'json']
         result = subprocess.run(cmd, capture_output=True, text=True)
         
-        if result.returncode == 0:
-            logger.info("pip-audit completed successfully - no vulnerabilities found")
-        else:
-            try:
-                # Try to parse JSON output if available
-                audit_data = json.loads(result.stdout)
-                for vuln in audit_data.get('vulnerabilities', []):
+        try:
+            # Parse JSON output regardless of return code
+            audit_data = json.loads(result.stdout)
+            for dep in audit_data.get('dependencies', []):
+                vulns = dep.get('vulns', [])
+                if vulns:
                     findings.append({
-                        "package": vuln.get('name'),
-                        "version": vuln.get('version'),
+                        "package": dep.get('name'),
+                        "version": dep.get('version'),
                         "vulnerabilities": [{
                             "id": v.get('id'),
                             "description": v.get('description'),
-                            "severity": v.get('severity', 'unknown')
-                        } for v in vuln.get('vulns', [])]
+                            "severity": "high"  # pip-audit doesn't provide severity
+                        } for v in vulns]
                     })
             except json.JSONDecodeError:
                 if "ResolutionImpossible" in result.stderr:
@@ -322,17 +321,28 @@ def run_repo_vulnerability_checks(dependencies: dict) -> dict:
     """
     Given a dict of dependencies, run external tools or query APIs to find known vulnerabilities.
     """
-    findings = {"dependency_issues": []}
+    findings = {
+        "dependency_issues": [],
+        "total_vulnerabilities": 0,
+        "vulnerable_packages": set()
+    }
     
     # Check Python dependencies
     for file_deps in dependencies.get("python", {}).values():
         python_vulns = _run_pip_audit(file_deps)
         findings["dependency_issues"].extend(python_vulns)
+        findings["total_vulnerabilities"] += sum(len(v.get("vulnerabilities", [])) for v in python_vulns)
+        findings["vulnerable_packages"].update(v.get("package") for v in python_vulns)
     
     # Check Node.js dependencies
     for file_deps in dependencies.get("node", {}).values():
         node_vulns = _run_npm_audit(file_deps)
         findings["dependency_issues"].extend(node_vulns)
+        findings["total_vulnerabilities"] += sum(len(v.get("vulnerabilities", [])) for v in node_vulns)
+        findings["vulnerable_packages"].update(v.get("package") for v in node_vulns)
+    
+    # Convert set to list for JSON serialization
+    findings["vulnerable_packages"] = list(findings["vulnerable_packages"])
     
     return findings
 
