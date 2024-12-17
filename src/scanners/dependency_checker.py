@@ -210,6 +210,7 @@ def identify_repo_dependencies(repo_path: str) -> dict:
 def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
     """Run pip-audit on the given dependencies and return findings"""
     if not deps:
+        logger.info("pip-audit requested with no dependencies to check. skipping.")
         return []
     
     # Create a temporary requirements.txt
@@ -223,6 +224,7 @@ def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
 
     try:
         # Run pip-audit with JSON output
+        logger.info(f"Attempting pip-audit on {len(deps)} dependencies")
         cmd = ['pip-audit', '--requirement', tmp_path, '--format', 'json']
         result = subprocess.run(cmd, capture_output=True, text=True)
         
