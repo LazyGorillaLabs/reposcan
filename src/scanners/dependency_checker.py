@@ -27,7 +27,7 @@ Approach:
    - Option B: Query vulnerability APIs (like the OSV API or GitHub Advisory Database).
    - Eventually, we could combine these approaches, starting simple (external tools) and expanding as needed.
 
-3. Don't trust the devs:
+3. Don't trust the devs (especially ourselves):
     Compare dependency manifest to actual imports to ensure consistency
 
 4. Report Findings:
@@ -351,12 +351,13 @@ def scan_repo_dependencies(repo_path: str) -> dict:
     High-level function to:
     1. Identify dependencies in repo
     2. Run vulnerability checks on them.
-    3. Return a structured dict of findings.
+    3. Return a structured dict of findings, and a list of dependencies we can check each file against at file check time. 
 
 
     For now, returns empty results.
     """
     deps = identify_repo_dependencies(repo_path)
+    #put info level log entry about how many total dependencies to be checked here
     findings = run_repo_vulnerability_checks(deps)
-    manifest = []
+    manifest = [] #temp, fill properly from deps
     return findings, manifest
