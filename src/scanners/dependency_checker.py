@@ -346,18 +346,36 @@ def run_repo_vulnerability_checks(dependencies: dict) -> dict:
     
     return findings
 
-def scan_repo_dependencies(repo_path: str) -> dict:
+def scan_repo_dependencies(repo_path: str) -> tuple[dict, list]:
     """
     High-level function to:
     1. Identify dependencies in repo
     2. Run vulnerability checks on them.
-    3. Return a structured dict of findings, and a list of dependencies we can check each file against at file check time. 
+    3. Return a structured dict of findings, and a list of dependencies we can check each file against at file check time.
 
-
-    For now, returns empty results.
+    Returns:
+        tuple: (findings dict, manifest list)
+        - findings: Dict containing vulnerability scan results
+        - manifest: List of all package names found in dependency files
     """
     deps = identify_repo_dependencies(repo_path)
-    #put info level log entry about how many total dependencies to be checked here
+    
+    # Count total dependencies
+    total_deps = sum(len(dep_list) for lang_deps in deps.values() 
+                    for dep_list in lang_deps.values())
+    logger.info(f"Found {total_deps} total dependencies to check")
+    
+    # Run vulnerability checks
     findings = run_repo_vulnerability_checks(deps)
-    manifest = [] #temp, fill properly from deps
+    
+    # Build manifest of all package names
+    manifest = []
+    for lang_deps in deps.values():
+        for file_deps in lang_deps.values():
+            manifest.extend(pkg_name for pkg_name, _ in file_deps)
+    
+    # Remove duplicates while preserving order
+    manifest = list(dict.fromkeys(manifest))
+    
+    logger.info(f"Built manifest with {len(manifest)} unique package names")
     return findings, manifest
