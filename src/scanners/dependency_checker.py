@@ -2,6 +2,7 @@
 import os
 import json
 import tomli
+from src.utils.logger import logger
 import re
 import subprocess
 import tempfile
@@ -164,6 +165,8 @@ def identify_repo_dependencies(repo_path: str) -> dict:
         "node": {}
     }
     
+    total_deps = 0
+    
     repo_path = Path(repo_path)
     
     # Look for Python dependency files
@@ -173,6 +176,8 @@ def identify_repo_dependencies(repo_path: str) -> dict:
             if deps:
                 rel_path = str(req_file.relative_to(repo_path))
                 result["python"][rel_path] = deps
+                logger.info(f"Found requirements.txt at {rel_path} with {len(deps)} dependencies")
+                total_deps += len(deps)
         except Exception as e:
             print(f"Error processing {req_file}: {e}")
     
@@ -182,6 +187,8 @@ def identify_repo_dependencies(repo_path: str) -> dict:
             if deps:
                 rel_path = str(pyproject.relative_to(repo_path))
                 result["python"][rel_path] = deps
+                logger.info(f"Found pyproject.toml at {rel_path} with {len(deps)} dependencies")
+                total_deps += len(deps)
         except Exception as e:
             print(f"Error processing {pyproject}: {e}")
     
@@ -192,6 +199,8 @@ def identify_repo_dependencies(repo_path: str) -> dict:
             if deps:
                 rel_path = str(pkg_json.relative_to(repo_path))
                 result["node"][rel_path] = deps
+                logger.info(f"Found package.json at {rel_path} with {len(deps)} dependencies")
+                total_deps += len(deps)
         except Exception as e:
             print(f"Error processing {pkg_json}: {e}")
     
@@ -218,6 +227,7 @@ def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
         result = subprocess.run(cmd, capture_output=True, text=True)
         
         if result.returncode == 0:
+            logger.info("pip-audit completed successfully - no vulnerabilities found")
             return []  # No vulnerabilities found
         
         try:
@@ -234,6 +244,8 @@ def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
                         "severity": v.get('severity', 'unknown')
                     } for v in vuln.get('vulns', [])]
                 })
+            if vulnerabilities:
+                logger.info(f"pip-audit found {len(vulnerabilities)} vulnerable packages")
             return vulnerabilities
         except json.JSONDecodeError:
             return []
@@ -283,6 +295,8 @@ def _run_npm_audit(deps: List[Tuple[str, str]]) -> List[dict]:
                             "severity": adv.get('severity')
                         }]
                     })
+                if vulnerabilities:
+                    logger.info(f"npm audit found {len(vulnerabilities)} vulnerable packages")
                 return vulnerabilities
             except json.JSONDecodeError:
                 return []
