@@ -228,8 +228,8 @@ def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
         cmd = ['pip-audit', '--requirement', tmp_path, '--format', 'json']
         result = subprocess.run(cmd, capture_output=True, text=True)
         
+        # Parse JSON output regardless of return code
         try:
-            # Parse JSON output regardless of return code
             audit_data = json.loads(result.stdout)
             for dep in audit_data.get('dependencies', []):
                 vulns = dep.get('vulns', [])
@@ -243,20 +243,20 @@ def _run_pip_audit(deps: List[Tuple[str, str]]) -> List[dict]:
                             "severity": "high"  # pip-audit doesn't provide severity
                         } for v in vulns]
                     })
-            except json.JSONDecodeError:
-                if "ResolutionImpossible" in result.stderr:
-                    logger.error("pip-audit failed due to dependency conflicts")
-                    findings.append({
-                        "package": "requirements",
-                        "version": "N/A",
-                        "vulnerabilities": [{
-                            "id": "DEPENDENCY_CONFLICT",
-                            "description": "Conflicting dependencies detected. This could mask security issues.",
-                            "severity": "medium"
-                        }]
-                    })
-                else:
-                    logger.error(f"pip-audit failed: {result.stderr}")
+        except json.JSONDecodeError:
+            if "ResolutionImpossible" in result.stderr:
+                logger.error("pip-audit failed due to dependency conflicts")
+                findings.append({
+                    "package": "requirements",
+                    "version": "N/A", 
+                    "vulnerabilities": [{
+                        "id": "DEPENDENCY_CONFLICT",
+                        "description": "Conflicting dependencies detected. This could mask security issues.",
+                        "severity": "medium"
+                    }]
+                })
+            else:
+                logger.error(f"pip-audit failed: {result.stderr}")
                     
         if findings:
             logger.info(f"Found {len(findings)} dependency issues")
