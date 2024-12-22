@@ -5,7 +5,10 @@
 RepoScan is a tool designed to help end-users assess and report on the presence of suspicious or malicious code within open-source repositories before they run it locally. While open source code can be inspected by anyone, in practice it’s rarely done thoroughly due to complexity, time constraints, and lack of expertise. RepoScan aims to bridge this gap by automating basic security checks and eventually offering more advanced capabilities such as AST-based analysis, vulnerability checking, and optional AI-driven summaries.
 
 **What problem does RepoScan solve?**  
-In today’s open-source ecosystem, users frequently download and run code from GitHub, PyPI, npm, or other sources without fully understanding what the code might be doing behind the scenes. Malicious actors can slip in backdoors, data exfiltration, or other unethical behaviors quite easily. RepoScan provides a basic first line of defense by scanning code repositories and highlighting suspicious patterns. It does not and can not guarantee absolute safety, but merely aims to help users make more informed decisions.
+In today’s open-source ecosystem, users frequently download and run code from GitHub, PyPI, npm, or other sources without fully understanding what the code might be doing behind the scenes. Malicious actors can slip in backdoors, data exfiltration, or other unethical behaviors quite easily. RepoScan aims to provide a basic first line of defense by scanning code repositories and highlighting suspicious patterns. It does not and can not guarantee absolute safety, but merely aims to help users who are security consious make more informed decisions about where to direct their attention. 
+
+**Existing Tools**
+I'm not a security expert. I want to utilize existing security tools and libraries wherever possible, and convert their output to something at least directionally useful for other non-experts.
 
 ## Current Status
 
@@ -74,17 +77,18 @@ The tool generates a detailed Markdown report including:
 
 **Short-Term:**
 
-- Improve Pattern Scanning:
-- better detection for vitualization/sandbox/debugger detection
-- code obfuscation detection
-- patterns for crypto miners / encryption functions
-- Add more language-specific patterns and refine regex matches to reduce false positives.
-- Logging Improvements:
+- Replace current scanners with more robust existing open source solutions
+- Refactor scanners -> plugins for said external tools
+- Logging Improvements: Save log files by default instead of littering stdout.
+- Improved reporting details about exactly what is suspicious, what ip is being called, what is exec() ing, etc for static checks
+- --output -o flag to output to a file, or reponame_scan_Timestamp.md by default
+- Debug mode for full tracing --debug -d
+- Lots of testing and example collecting
 
 **Medium-Term:**
 
-- Better AST-Based Analysis:
-Implement or integrate existing AST scanners for Python and JavaScript to detect more subtle malicious behaviors (like dynamic code execution or suspicious control flows).
+- Integrate as many additional existing security analysis tools as possible as plugins
+- Improve Telemetry analysis to determine what infomation is being gathered and shared with whom
 - LLM Integration (Optional):
 Use a Large Language Model for deeper insights:
   - File-by-File Analysis: Ask the LLM to summarize suspicious logic found by the pattern-based and AST scanners, or all files if desired. 
@@ -92,39 +96,15 @@ Use a Large Language Model for deeper insights:
 
 **Long-Term:**
 
+- Better help/documentation --help -h is something that should exist.   
 - Multi-Language Support:
 Expand beyond Python/JS to cover languages like Go, Rust, or C/C++.
-- Advanced Telemetry module to determine what infomation is being gathered and shared with whom
-- Community-Driven Rule Sets:
-Allow users to contribute their own suspicious pattern rules and share them, making RepoScan a community-driven project.
-- better detection for unwanted behaviors such as crypto miners
-- Better JS AST parsing and/or custom ESLint rules
-- (Maybe some day) Sandboxed Dynamic Analysis:
-Safely execute the code in a controlled environment to observe runtime behavior.
+- Community-Driven Expansion
+Allow users to contribute their own plugins and share them, making RepoScan a community-driven project.
+- If LLM/AI mode enabled, option to enter chat with repo vulnerabilities mode to ask questions about findings (use custom sys instructions and preloaded context plus report)
 
 ## Contributing
 The project is still in its early stages. Community feedback, code contributions, and suggestions for patterns and scanning techniques are welcome. By contributing, you help make open-source software safer and more transparent for everyone.
 
 ## License
 MIT
-
-## Architecture & Code Structure
-
-The project is structured to allow easy expansion and modularity. Key directories and their purposes:
-
-- **`src/main.py`**: The entry point for the application’s CLI usage. It orchestrates cloning/fetching the repository, scanning files, and generating reports.
-- **`src/utils/`**:  
-  - `repo_handler.py`: Handles cloning, verifying local paths, and gathering target files for scanning.  
-  - `report_generator.py`: Formats and produces the final Markdown report.  
-  - `config.py`: Stores global configuration variables (e.g., file extensions to scan).  
-  - `logger.py`: Sets up the logging environment.
-- **`src/patterns/`**: Holds the regex-based suspicious patterns, separated by language in future expansions. Currently includes `common_patterns.py` for patterns shared across Python/JS.
-- **`src/scanners/`**:  
-  - `pattern_scanner.py`: The initial scanner that matches suspicious patterns in files.  
-  - Future scanners will be added here, such as `ast_scanner.py` for AST-based analysis or `dependency_checker.py`.
-- **`src/llm/`**:  
-  Reserved for future integration of Large Language Models (LLMs) to interpret code and produce advanced summaries.
-- **`tests/`**:  
-  Placeholder directory for unit tests to ensure code quality and maintainability.
-
-This modular structure allows developers and the community to add new features, patterns, and scanning strategies without disrupting the existing codebase.
