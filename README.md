@@ -2,22 +2,26 @@
 
 ## Overview
 
-RepoScan is a tool designed to help end-users assess and report on the presence of suspicious or malicious code within open-source repositories before they run it locally. While open source code can be inspected by anyone, in practice it’s rarely done thoroughly due to complexity, time constraints, and lack of expertise. RepoScan aims to bridge this gap by automating basic security checks and eventually offering more advanced capabilities such as AST-based analysis, vulnerability checking, and optional AI-driven summaries.
-
-**What problem does RepoScan solve?**  
-In today’s open-source ecosystem, users frequently download and run code from GitHub, PyPI, npm, or other sources without fully understanding what the code might be doing behind the scenes. Malicious actors can slip in backdoors, data exfiltration, or other unethical behaviors quite easily. RepoScan aims to provide a basic first line of defense by scanning code repositories and highlighting suspicious patterns. It does not and can not guarantee absolute safety, but merely aims to help users who are security consious make more informed decisions about where to direct their attention. 
+**TLDR**
+Point at a repo and scan, get security and privacy/telemetry summary in plain language.
 
 **Existing Tools**
-I'm not a security expert. I want to utilize existing security tools and libraries wherever possible, and convert their output to something at least directionally useful for other non-experts.
+Most existing security automation tools target developers and/or security professionals with lots of specialized training. RepoScan is a tool designed to help end-users assess and report on the presence of suspicious or malicious code within open-source repositories before they run it locally. While open source code can be inspected by anyone, in practice it’s rarely done thoroughly due to complexity, time constraints, and lack of expertise. RepoScan aims to bridge this gap by automating basic security checks and eventually offering more advanced capabilities and optional AI-driven summaries.
+
+In today’s open-source ecosystem, users frequently download and run code from GitHub, PyPI, npm, or other sources without fully understanding what the code might be doing behind the scenes. Malicious actors can slip in backdoors, data exfiltration, or other unethical behaviors quite easily. Well intentioned and competent programmers can also make unintentional mistakes with big security ramifications. RepoScan aims to provide a basic first line of defense by scanning code repositories and highlighting suspicious patterns. It does not and can not guarantee absolute safety, but merely aims to help users who are security consious make more informed decisions about where to direct their attention. 
+
+I'm not a security expert. I want to make it super easy for other non experts to utilize existing security tools and libraries with no prior knowledge, and convert their output to something at least directionally useful. 
 
 ## Current Status
 
 **What RepoScan Does Today:**
 
-- **Basic Pattern-Based Scanning:**  
-  RepoScan currently scans Python, JavaScript, and related file types for simple suspicious patterns. These include occurrences of `eval()`, `exec()`, suspicious imports, and hardcoded URLs. These can direct limited attention to higher risk areas of code. 
 - **Local and Remote Repos:**  
   It can clone a repository from a given GitHub URL, pypi package, npm package, a remote file, or run checks directly on local directories.
+- **Basic Pattern-Based Scanning:**  
+  RepoScan currently scans Python, JavaScript, and related file types for simple suspicious patterns. These include occurrences of `eval()`, `exec()`, suspicious imports, and hardcoded URLs. These can direct limited attention to higher risk areas of code. 
+- **Bandit Static Checking:**
+  It calls an amazing existing tool named bandit to check python code more rigorously than the example regex scanner.
 - **Dependency Checks:**
   Runs pip-audit or npm-audit on found dependency manifests to report known vulnerabilities. 
 - **Report Generation:**  
@@ -35,7 +39,6 @@ At this stage, RepoScan is an MVP (Minimum Viable Product): a basic but function
 - Python 3.7+ (Recommended)
 - `git` installed for remote repositories
 - `npm` installed for JavaScript scanning (optional)
-- `pip-audit` for Python dependency checking
 - `eslint` for JavaScript analysis (optional)
 
 **Installation (Local Development):**
@@ -57,7 +60,7 @@ python -m src.main <input>
 
 Disable specific scanners:
 ```bash
-python -m src.main <input> --no-ast --no-eslint
+python -m src.main <input> --no-bandit --no-eslint
 ```
 
 Input can be:
@@ -70,7 +73,7 @@ Input can be:
 The tool generates a detailed Markdown report including:
 - Dependency vulnerability analysis
 - Suspicious code patterns
-- AST-based findings
+- Bandit findings
 - ESLint warnings (if enabled)
 
 ## Roadmap & Planned Features
@@ -97,8 +100,9 @@ Use a Large Language Model for deeper insights:
 **Long-Term:**
 
 - Better help/documentation --help -h is something that should exist.   
+- Reporting / Sharing new discoveries: If a new vulnerability is found, maybe there's a way to report that to a centralized depo so others know as well. Offer this option at the end of scan? "Eg, Do you want this program to try to make an automated report of the findings to vulnerability database Y?" 
 - Multi-Language Support:
-Expand beyond Python/JS to cover languages like Go, Rust, or C/C++.
+Expand beyond Python/JS to cover languages like Go, Rust, or C/C++. (Semgrep?)
 - Community-Driven Expansion
 Allow users to contribute their own plugins and share them, making RepoScan a community-driven project.
 - If LLM/AI mode enabled, option to enter chat with repo vulnerabilities mode to ask questions about findings (use custom sys instructions and preloaded context plus report)

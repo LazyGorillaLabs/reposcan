@@ -30,8 +30,6 @@ Logic:
 - Each fetch function returns a local path (directory or file) to be scanned.
 
 Note:
-- PyPI and NPM fetch functions are placeholders.
-- fetch_remote_file() is also a placeholder that would use `requests` or `urllib` to download the file.
 - For GitHub, we still clone via `git clone`.
 
 This modular design can be extended to support more sources easily.
