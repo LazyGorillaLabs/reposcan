@@ -59,7 +59,11 @@ class LLMPlugin(BasePlugin):
             logger.error(f"Failed to initialize LLM: {e}")
             return findings
 
-        # 3. Process each file individually
+        # 3. Have LLM module estimate cost based on model and total embeddings for the filtered project files
+        #    Give user option to proceed or skip the plugin before proceeding. 
+        #    Maybe one day options to change model or abort full run, but save for future dev
+
+        # 4. Process each file individually
         for file_path in file_list:
             try:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
