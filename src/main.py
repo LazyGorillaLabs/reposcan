@@ -86,9 +86,16 @@ def main():
             scan_results[plugin.name] = plugin_result
 
 
+        # Generate and save report
         report = generate_report(scan_results)
-        #Put LLM summarizer here to rewrite report
-        print(report) 
+        output_dir = "reports"
+        report_filename = get_report_filename(repo_input)
+        report_path = os.path.join(output_dir, report_filename)
+        
+        with open(report_path, 'w', encoding='utf-8') as f:
+            f.write(report)
+        
+        logger.info(f"Report saved to: {report_path}")
     finally:
         # Clean up if we fetched code into a temp directory.
         # This logic might need more robust detection in real usage.

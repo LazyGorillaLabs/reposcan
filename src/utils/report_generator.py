@@ -1,8 +1,31 @@
 # src/utils/report_generator.py
+import os
+from datetime import datetime
 from typing import Dict, Any
 from src.utils.logger import logger
+from urllib.parse import urlparse
 
-def generate_report(all_scan_results: Dict[str, Dict[str, Any]]) -> str:
+def get_report_filename(repo_input: str) -> str:
+    """Generate a filename for the report based on repo name and date"""
+    # Extract repo name from various input types
+    if repo_input.startswith(('http://', 'https://')):
+        parsed = urlparse(repo_input)
+        path_parts = parsed.path.strip('/').split('/')
+        repo_name = path_parts[-1] if path_parts else 'unknown'
+    elif ':' in repo_input:
+        # Handle pypi:package or github:user/repo format
+        repo_name = repo_input.split(':')[1].split('/')[-1]
+    else:
+        # Local path - use directory/file name
+        repo_name = os.path.basename(repo_input.rstrip('/'))
+
+    # Clean up repo name and add timestamp
+    repo_name = repo_name.replace('.git', '')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    return f"{repo_name}_scan_{timestamp}.md"
+
+def generate_report(all_scan_results: Dict[str, Dict[str, Any]], output_dir: str = "reports") -> str:
     """
     Generate a human-readable Markdown report from the plugin-based results.
     all_scan_results structure:
@@ -167,4 +190,9 @@ def generate_report(all_scan_results: Dict[str, Dict[str, Any]]) -> str:
             report_lines.append(f"```\n{plugin_data}\n```")
 
     report_lines.append("\n---\n*End of Report*\n")
-    return "\n".join(report_lines)
+    report_content = "\n".join(report_lines)
+    
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+    
+    return report_content
