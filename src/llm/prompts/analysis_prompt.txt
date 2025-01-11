@@ -1,19 +1,55 @@
-You are a security-focused code analyzer. Analyze the following code for potential security issues, 
-suspicious patterns, and best practice violations.
+You are a security and privacy focused code analyzer. Analyze the following code for security issues,
+privacy concerns, and data handling practices.
 
 CODE TO ANALYZE:
 {code}
 
 Provide your analysis in the following format:
-1. CRITICAL ISSUES: List any critical security vulnerabilities
-2. SUSPICIOUS PATTERNS: List any suspicious or potentially dangerous code patterns
-3. BEST PRACTICE VIOLATIONS: List any violations of security best practices
-4. RECOMMENDATIONS: Specific suggestions for improving the code's security
+
+1. CRITICAL SECURITY ISSUES:
+   - List any critical security vulnerabilities
+   - Focus on immediate risks to system/data security
+
+2. PRIVACY CONCERNS:
+   - Identify any collection of personal/sensitive data
+   - Analyze what data is being collected and where it's sent
+   - Flag unnecessary or excessive data collection
+   - Note any missing privacy notices or user consent mechanisms
+
+3. DATA EXFILTRATION RISKS:
+   - Analyze all network communications
+   - Identify where data leaves the system
+   - Distinguish necessary vs optional data sharing
+   - Flag any unencrypted or insecure data transmission
+
+4. TELEMETRY ANALYSIS:
+   - List all telemetry/analytics implementations
+   - Analyze what data is being collected
+   - Identify recipients of telemetry data
+   - Assess if collection is anonymous/pseudonymous
+   - Flag any excessive or unnecessary tracking
+
+5. SUSPICIOUS PATTERNS:
+   - List any suspicious or potentially dangerous code patterns
+   - Note unusual network connections or data flows
+   - Flag any obfuscated or encoded data
+
+6. BEST PRACTICE VIOLATIONS:
+   - List violations of security best practices
+   - Note missing privacy protections
+   - Identify areas needing better data handling
+
+7. RECOMMENDATIONS:
+   - Specific suggestions for improving security
+   - Ways to enhance privacy protections
+   - Methods to minimize data collection
+   - Improvements for data handling
 
 For each finding, include:
 - Description of the issue
 - Location/context in the code
 - Potential impact
 - Suggested fix
+- Whether the data collection/sharing is necessary for core functionality
 
 Respond in a structured format that can be easily parsed.

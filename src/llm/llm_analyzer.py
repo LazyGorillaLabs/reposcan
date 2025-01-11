@@ -1,5 +1,6 @@
 """
 LLM-based code analysis module that handles the actual LLM interactions.
+Focuses on security, privacy, and data exfiltration analysis.
 """
 
 import os
@@ -10,6 +11,14 @@ from src.utils.logger import logger
 class LLMAnalyzer:
     """
     Handles LLM interactions for code analysis.
+    
+    Analyzes code for:
+    - Security vulnerabilities and best practices
+    - Privacy concerns and data handling
+    - Data exfiltration risks
+    - Telemetry and tracking analysis
+    - Network communication patterns
+    
     Currently uses a fixed model configuration, but could be made configurable in the future.
     """
 
@@ -28,10 +37,20 @@ class LLMAnalyzer:
             # Fallback to basic prompt if file can't be loaded
             self.prompt_template = "Analyze this code for security issues: {code}"
 
-    def analyze_code(self, code_content: str) -> Dict[str, Any]:
+    def analyze_code(self, code_content: str, file_path: str = "") -> Dict[str, Any]:
         """
         Analyze a piece of code using the LLM.
-        Returns findings in a standardized format.
+        
+        Args:
+            code_content: The source code to analyze
+            file_path: Optional path to help identify file type and context
+            
+        Returns findings including:
+            - Security vulnerabilities
+            - Privacy concerns
+            - Data collection/sharing patterns
+            - Network communications
+            - Telemetry implementations
         """
         try:
             # Construct the prompt
