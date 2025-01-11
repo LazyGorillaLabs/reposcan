@@ -6,7 +6,10 @@ from src.utils.logger import logger
 from urllib.parse import urlparse
 
 def get_report_filename(repo_input: str) -> str:
-    """Generate a filename for the report based on repo name and date"""
+    """
+    Generate a filename for the report based on repo name and date.
+    This is used as the default if no custom filename is provided via --output.
+    """
     # Extract repo name from various input types
     if repo_input.startswith(('http://', 'https://')):
         parsed = urlparse(repo_input)

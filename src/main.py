@@ -51,6 +51,7 @@ def main():
     parser.add_argument("repo_path", help="GitHub, PyPI, NPM, remote file, local dir/file")
     parser.add_argument("--no-bandit", action="store_true", help="Disable Python Bandit scanning")
     parser.add_argument("--no-eslint", action="store_true", help="Disable ESLint scanning for JS/TS files")
+    parser.add_argument("-o", "--output", help="Custom output filename for the report")
     args = parser.parse_args()
 
     repo_input = args.repo_path
@@ -89,7 +90,7 @@ def main():
         # Generate and save report
         report = generate_report(scan_results)
         output_dir = "reports"
-        report_filename = get_report_filename(repo_input)
+        report_filename = args.output if args.output else get_report_filename(repo_input)
         report_path = os.path.join(output_dir, report_filename)
         
         with open(report_path, 'w', encoding='utf-8') as f:
