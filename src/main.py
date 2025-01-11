@@ -36,7 +36,7 @@ import argparse
 
 #Utilities
 from src.utils.repo_handler import fetch_code_source
-from src.utils.report_generator import generate_report
+from src.utils.report_generator import generate_report, get_report_filename
 from src.utils.logger import logger
 
 #Plugins to actual scanning tools
